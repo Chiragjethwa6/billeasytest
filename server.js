@@ -92,10 +92,10 @@ app.listen(3000, () => {
 
 // revoke the database
 
-client.query('REVOKE EXECUTE ON FUNCTION get_employee_details_by_department_and_time_range(INT, DATE, DATE) FROM public', (err, res) => {
-    console.log(err ? err.stack : res);
-    client.end();
-  });
+// client.query('REVOKE EXECUTE ON FUNCTION get_employee_details_by_department_and_time_range(INT, DATE, DATE) FROM public', (err, res) => {
+//     console.log(err ? err.stack : res);
+//     client.end();
+//   });
 
 app.post('/maximalsubset', async (req,res) => {
     console.log(req.body);
