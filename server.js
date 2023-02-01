@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 // const routes = require('./routes/routes');
-const { Client } = require('pg');
+// const { Client } = require('pg');
 const bodyParser = require('body-parser');
 
 app.use(bodyParser.json());
@@ -12,21 +12,21 @@ app.listen(3000, () => {
     console.log("listening on port 3000 : ")
 });
 
-const client = new Client({
-    host: 'localhost',
-    user: 'postgres',
-    password: 'postgres',
-    database: 'Employee'
-  });
+// const client = new Client({
+//     host: 'localhost',
+//     user: 'postgres',
+//     password: 'postgres',
+//     database: 'Employee'
+//   });
   
-client.connect();
+// client.connect();
 
-const query = 'SELECT * FROM employee';
+// const query = 'SELECT * FROM employee';
 
-client.query(query, (err, res) => {
-    console.log(err, res.rows);
+// client.query(query, (err, res) => {
+//     console.log(err, res.rows);
     
-});  
+// });  
 
 // Create department table
 
