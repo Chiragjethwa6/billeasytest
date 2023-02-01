@@ -125,3 +125,7 @@ app.post('/maximalsubset', async (req,res) => {
     res.status(200).send("Maximal subset length : "+result.toString());
     
 });
+
+app.get('/', (req,res) => {
+    res.status(200).send("Hell from server");
+})
