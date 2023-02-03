@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
-// const routes = require('./routes/routes');
-// const { Client } = require('pg');
+const { Client } = require('pg');
 const bodyParser = require('body-parser');
 
 app.use(bodyParser.json());
@@ -12,91 +11,119 @@ app.listen(3000, () => {
     console.log("listening on port 3000 : ")
 });
 
-// const client = new Client({
-//     host: 'localhost',
-//     user: 'postgres',
-//     password: 'postgres',
-//     database: 'Employee'
-//   });
+const client = new Client({
+    host: 'dpg-cfedhkmn6mpu0ucgs6ug-a',
+    port : '5432',
+    user: 'root',
+    password: 'Dra33cKbl8LLTsbffp1okryDqnkploXm',
+    database: 'employees_1vq7'
+  });
   
-// client.connect();
+client.connect();
 
-// const query = 'SELECT * FROM employee';
+//API for creating tables, trigger and function
+app.get('/', (req,res) => {
 
-// client.query(query, (err, res) => {
-//     console.log(err, res.rows);
+    const query = `
+    CREATE TABLE department (
+        id serial PRIMARY KEY,
+        name varchar(255) NOT NULL,
+        employee_count integer NOT NULL DEFAULT 0
+    );
     
-// });  
+    CREATE TABLE employee (
+        id serial PRIMARY KEY,
+        name varchar(255) NOT NULL,
+        department_id integer REFERENCES department(id),
+        joining_date date NOT NULL
+    );
 
-// Create department table
+    CREATE OR REPLACE FUNCTION increment_employee_count()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        UPDATE department
+        SET employee_count = employee_count + 1
+        WHERE id = NEW.department_id;
+    
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    
+    CREATE TRIGGER increment_employee_count_trigger
+    AFTER INSERT ON employee
+    FOR EACH ROW
+    EXECUTE FUNCTION increment_employee_count();
 
-// CREATE TABLE department (
-//     id serial PRIMARY KEY,
-//     name varchar(255) NOT NULL,
-//     employee_count integer NOT NULL DEFAULT 0
-//   );
+    INSERT INTO department (name) VALUES ('Sales');
+    INSERT INTO department (name) VALUES ('Marketing');
+    INSERT INTO department (name) VALUES ('Engineering'); 
+    
+    INSERT INTO employee (name, department_id, joining_date) VALUES ('Employee 1', 1, '2022-01-01');
+    INSERT INTO employee (name, department_id, joining_date) VALUES ('Employee 2', 2, '2022-02-01');
+    INSERT INTO employee (name, department_id, joining_date) VALUES ('Employee 3', 3, '2022-03-01');
 
-// Create employee table
-  
-//   CREATE TABLE employee (
-//     id serial PRIMARY KEY,
-//     name varchar(255) NOT NULL,
-//     department_id integer REFERENCES department(id),
-//     joining_date date NOT NULL
-//   );
- 
-// Inserting data into department table 
+    CREATE OR REPLACE FUNCTION get_employee_details_by_department_and_time_range(depa_id INT, start_date DATE, end_date DATE)
+        RETURNS JSON AS $$
+        DECLARE
+        result JSON;
+        BEGIN
+        SELECT json_agg(row_to_json(employee)) INTO result
+        FROM employee 
+        WHERE depa_id = department_id AND joining_date BETWEEN start_date AND end_date;
 
-//   INSERT INTO department (name) VALUES ('Sales');
-//   INSERT INTO department (name) VALUES ('Marketing');
-//   INSERT INTO department (name) VALUES ('Engineering');
+        RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
 
-// Inserting data into employee table 
+    `;
 
-//   INSERT INTO employee (name, department_id, joining_date) VALUES ('John Doe', 1, '2022-01-01');
-//   INSERT INTO employee (name, department_id, joining_date) VALUES ('Jane Doe', 2, '2022-02-01');
-//   INSERT INTO employee (name, department_id, joining_date) VALUES ('Bob Smith', 3, '2022-03-01');
+    client.query(query, (err, response) => {
+        console.log("Server is Up and Running and Created table employee and department, Inserted Values in both the tables, Created Trigger for employee count, Created Function for converting columns into JSON based on the filters " );
+        res.status(200).send("Server is Up and Running and Created table employee and department, Inserted Values in both the tables, Created Trigger for employee count, Created Function for converting columns into JSON based on the filters ");
+    });  
+});
 
-// Trigger to maintain a count of employees in each department
+//Queries
+const getDepartment =   'SELECT * FROM department;';
+const getEmployee =   'SELECT * FROM employee;';
+const getDataIntoJson = `
+    SELECT "get_employee_details_by_department_and_time_range"(1, '2022-01-01T18:30:00.000Z', '2022-01-2T18:30:00.000Z');  
+`;
 
-//   CREATE OR REPLACE FUNCTION increment_employee_count()
-//   RETURNS TRIGGER AS $$
-//   BEGIN
-//     UPDATE department
-//     SET employee_count = employee_count + 1
-//     WHERE id = NEW.department_id;
-  
-//     RETURN NEW;
-//   END;
-//   $$ LANGUAGE plpgsql;
-  
-//   CREATE TRIGGER increment_employee_count_trigger
-//   AFTER INSERT ON employee
-//   FOR EACH ROW
-//   EXECUTE FUNCTION increment_employee_count();
+//query for department table
+client.query(getDepartment, (err, res) => {
+    console.log("Department Table : ");
+    console.log(res.rows);
+});  
 
-// Function to return JSON of all employee details in a department based on the time they joined the company
-  
-//   CREATE OR REPLACE FUNCTION get_employee_details_by_department_and_time_range(department_id INT, start_date DATE, end_date DATE)
-//   RETURNS JSON AS $$
-//   DECLARE
-//     result JSON;
-//   BEGIN
-//     SELECT json_agg(row_to_json(employee)) INTO result
-//     FROM employee
-//     WHERE department_id = department_id AND joining_date BETWEEN start_date AND end_date;
-  
-//     RETURN result;
-//   END;
-//   $$ LANGUAGE plpgsql;
+//query for employee table
+client.query(getEmployee, (err, res) => {
+    console.log("Employee Table : ");
+    console.log(res.rows);
+});  
 
-// revoke the database
+//query for converting column into JSON
+client.query(getDataIntoJson, (err, res) => {
+    console.log("JSON Data based on filter : ");
+    console.log(JSON.stringify(res.rows));
+});  
 
-// client.query('REVOKE EXECUTE ON FUNCTION get_employee_details_by_department_and_time_range(INT, DATE, DATE) FROM public', (err, res) => {
-//     console.log(err ? err.stack : res);
-//     client.end();
-//   });
+//API for revoking the function created
+app.post('/revokeFunction', (req,res) => {
+    const name = req.body.name;
+    const revokeFunction = `
+    REVOKE EXECUTE ON Function ${name} FROM public;
+`;
 
+    client.query(revokeFunction, (err, response) => {
+        console.log("Revoking the function created for converting columns into JSON based on filter : ");
+        console.log(response);
+        res.status(200).send("JSON Data based on filter : "+JSON.stringify(response));
+        client.end();
+    });
+})
+
+//API for finding maximal subset
 app.post('/maximalsubset', async (req,res) => {
     console.log(req.body);
     var arr = req.body.array;
@@ -122,10 +149,8 @@ app.post('/maximalsubset', async (req,res) => {
     for (let i = 1; i <= K/2; i++)
         result += Math.max(f[i], f[K-i]);
     
+    console.log("Maximal subset length : "+result.toString());
     res.status(200).send("Maximal subset length : "+result.toString());
     
 });
 
-app.get('/', (req,res) => {
-    res.status(200).send("Hell from server");
-})
