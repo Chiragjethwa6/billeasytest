@@ -86,27 +86,21 @@ app.get('/', (req,res) => {
 //Queries
 const getDepartment =   'SELECT * FROM department;';
 const getEmployee =   'SELECT * FROM employee;';
-const getDataIntoJson = `
+
+
+app.get('/convertJson', (req,res) => {
+    const getDataIntoJson = `
     SELECT "get_employee_details_by_department_and_time_range"(1, '2022-01-01T18:30:00.000Z', '2022-01-2T18:30:00.000Z');  
-`;
-
-//query for department table
-client.query(getDepartment, (err, res) => {
-    console.log("Department Table : ");
-    console.log(res.rows);
-});  
-
-//query for employee table
-client.query(getEmployee, (err, res) => {
-    console.log("Employee Table : ");
-    console.log(res.rows);
-});  
+    `;
+    client.query(getDataIntoJson, (err, response) => {
+        console.log("JSON Data based on filter : ");
+        console.log(JSON.stringify(response.rows));
+        res.status(200).send("JSON Data based on filter : "+JSON.stringify(response.rows));
+    });  
+});
 
 //query for converting column into JSON
-client.query(getDataIntoJson, (err, res) => {
-    console.log("JSON Data based on filter : ");
-    console.log(JSON.stringify(res.rows));
-});  
+
 
 //API for revoking the function created
 app.post('/revokeFunction', (req,res) => {
